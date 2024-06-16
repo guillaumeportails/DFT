@@ -1,0 +1,8 @@
+
+# builds ashes
+*.o
+dft
+
+# vi is good
+.*.sw[po]
+

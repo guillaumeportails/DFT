@@ -99,7 +99,7 @@ void fft_base3(complex double *X, int N, int N3) {
 void fft_hybrid(complex double *X, int N, int N2, int N3) {
     if (N2 > 0) {
         int size2 = ipow(2, N2);
-        complex double *subarray2 = malloc(size2 * sizeof(complex double));
+        complex double subarray2[size2];
 
         for (int i = 0; i < N; i += size2) {
             for (int j = 0; j < size2; j++) {
@@ -110,13 +110,11 @@ void fft_hybrid(complex double *X, int N, int N2, int N3) {
                 X[i + j] = subarray2[j];
             }
         }
-
-        free(subarray2);
     }
 
     if (N3 > 0) {
         int size3 = ipow(3, N3);
-        complex double *subarray3 = malloc(size3 * sizeof(complex double));
+        complex double subarray3[size3];
 
         for (int i = 0; i < N; i += size3) {
             for (int j = 0; j < size3; j++) {
@@ -127,8 +125,6 @@ void fft_hybrid(complex double *X, int N, int N2, int N3) {
                 X[i + j] = subarray3[j];
             }
         }
-
-        free(subarray3);
     }
 }
 
