@@ -2,6 +2,8 @@
 # builds ashes
 *.o
 dft
+fft
+check.m
 
 # vi is good
 .*.sw[po]

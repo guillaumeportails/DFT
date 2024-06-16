@@ -7,15 +7,15 @@
 
 #define PI 3.141592653589793238462
 
-int ipow (int b, int n)         // pow(b,n)
+static int ipow (int b, int n)         // pow(b,n)
 {
   int r = 1;
   while (n-- > 0) r *= b;
   return r;
 }
 
-// Fonction pour permuter les éléments selon l'ordre de bit inversé
-void base2_reverse_copy(complex double *source, complex double *dest, int N, int N2) {
+// Fonction pour permuter les elements selon l'ordre de bit inverse
+static void base2_reverse_copy(complex double *source, complex double *dest, int N, int N2) {
     for (int i = 0; i < N; i++) {
         int rev = 0;
         for (int j = 0; j < N2; j++) {
@@ -26,8 +26,8 @@ void base2_reverse_copy(complex double *source, complex double *dest, int N, int
     }
 }
 
-// Fonction pour permuter les éléments selon l'ordre de base-3 inversée
-void base3_reverse_copy(complex double *source, complex double *dest, int N, int N3) {
+// Fonction pour permuter les elements selon l'ordre de base-3 inversee
+static void base3_reverse_copy(complex double *source, complex double *dest, int N, int N3) {
     for (int i = 0; i < N; i++) {
         int rev = 0;
         int tmp = i;
@@ -40,7 +40,7 @@ void base3_reverse_copy(complex double *source, complex double *dest, int N, int
 }
 
 // FFT pour N = 2^N2
-void fft_base2(complex double *X, int N, int N2) {
+static void fft_base2(complex double *X, int N, int N2) {
     complex double *temp = malloc(N * sizeof(complex double));
     base2_reverse_copy(X, temp, N, N2);
 
@@ -67,7 +67,7 @@ void fft_base2(complex double *X, int N, int N2) {
 }
 
 // FFT pour N = 3^N3
-void fft_base3(complex double *X, int N, int N3) {
+static void fft_base3(complex double *X, int N, int N3) {
     complex double *temp = malloc(N * sizeof(complex double));
     base3_reverse_copy(X, temp, N, N3);
 
@@ -77,11 +77,11 @@ void fft_base3(complex double *X, int N, int N3) {
         for (int k = 0; k < N; k += m) {
             complex double w = 1.0;
             for (int j = 0; j < m / 3; j++) {
-                complex double t1 = w * temp[k + j + m / 3];
-                complex double t2 = w * w * temp[k + j + 2 * m / 3];
-                complex double u = temp[k + j];
-                temp[k + j] = u + t1 + t2;
-                temp[k + j + m / 3] = u + t1 * cexp(-2.0 * I * PI / 3) + t2 * cexp(-4.0 * I * PI / 3);
+                complex double const t1 =     w * temp[k + j + 1 * m / 3];
+                complex double const t2 = w * w * temp[k + j + 2 * m / 3];
+                complex double const u  = temp[k + j];
+                temp[k + j + 0 * m / 3] = u + t1 + t2;
+                temp[k + j + 1 * m / 3] = u + t1 * cexp(-2.0 * I * PI / 3) + t2 * cexp(-4.0 * I * PI / 3);
                 temp[k + j + 2 * m / 3] = u + t1 * cexp(-4.0 * I * PI / 3) + t2 * cexp(-8.0 * I * PI / 3);
                 w *= wm;
             }
@@ -98,7 +98,7 @@ void fft_base3(complex double *X, int N, int N3) {
 // FFT hybride pour N = 2^N2 * 3^N3
 void fft_hybrid(complex double *X, int N, int N2, int N3) {
     if (N2 > 0) {
-        int size2 = ipow(2, N2);
+        int const size2 = ipow(2, N2);
         complex double subarray2[size2];
 
         for (int i = 0; i < N; i += size2) {
@@ -113,7 +113,7 @@ void fft_hybrid(complex double *X, int N, int N2, int N3) {
     }
 
     if (N3 > 0) {
-        int size3 = ipow(3, N3);
+        int const size3 = ipow(3, N3);
         complex double subarray3[size3];
 
         for (int i = 0; i < N; i += size3) {
@@ -128,10 +128,10 @@ void fft_hybrid(complex double *X, int N, int N2, int N3) {
     }
 }
 
-// Fonction d'affichage du résultat
+// Fonction d'affichage du resultat
 void print_complex_array(const char *v, complex double *X, int N) {
     for (int i = 0; i < N; i++) {
-        printf("%s(%2d) = %15.9f + %15.8fi;\n", v, i+1, creal(X[i]), cimag(X[i]));
+        printf("%s(%2d) = %18.15f + %18.15fi;\n", v, i+1, creal(X[i]), cimag(X[i]));
     }
 }
 
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
         x[i] = sin(1+i*0.11) + I*sin(2-i*0.22);
     }
 
-    printf("%% Entrée:\n");
+    printf("%% Entree:\n");
     print_complex_array("X", x, N);
 
     fft_hybrid(x, N, N2, N3);
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
     printf("\n");
     printf("F = fft(X);\n");
     printf("e = max(abs(Y-F))\n");
-    printf("if (e > 1e-3); fprintf('KO\\n');quit(1); else fprintf('OK\\n');quit(0); end\n");
+    printf("if (e > 1e-6); fprintf('KO\\n');quit(1); else fprintf('OK\\n');quit(0); end\n");
 
     return 0;
 }
