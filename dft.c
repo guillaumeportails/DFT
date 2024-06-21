@@ -2,8 +2,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include <complex.h>
+#include <time.h>
 
 #define PI 3.141592653589793238462
 
@@ -40,7 +42,7 @@ static void base3_reverse_copy(complex double *source, complex double *dest, int
 }
 
 // FFT pour N = 2^N2
-static void fft_base2(complex double *X, int N, int N2) {
+static void fft_cooleytukey_base2(complex double *X, int N, int N2) {
     complex double *temp = malloc(N * sizeof(complex double));
     base2_reverse_copy(X, temp, N, N2);
 
@@ -105,7 +107,7 @@ void fft_hybrid(complex double *X, int N, int N2, int N3) {
             for (int j = 0; j < size2; j++) {
                 subarray2[j] = X[i + j];
             }
-            fft_base2(subarray2, size2, N2);
+            fft_cooleytukey_base2(subarray2, size2, N2);
             for (int j = 0; j < size2; j++) {
                 X[i + j] = subarray2[j];
             }
@@ -128,6 +130,49 @@ void fft_hybrid(complex double *X, int N, int N2, int N3) {
     }
 }
 
+// Stockham FFT
+// Cf http://wwwa.pikara.ne.jp/okojisan/otfft-en/stockham2.html
+static void stockham (int n, int s, bool eo, complex double *x, complex double *y)
+// n  : sequence length
+// s  : stride
+// eo : x is output if eo == 0, y is output if eo == 1
+// x  : input sequence(or output sequence if eo == 0)
+// y  : work area(or output sequence if eo == 1)
+{
+    const int m = n/2;
+    const double theta0 = 2*PI/n;
+
+    if (n == 2) {
+        complex double * z = eo ? y : x;
+        for (int q = 0; q < s; q++) {
+            const complex double  a = x[q + 0];
+            const complex double  b = x[q + s];
+            z[q + 0] = a + b;
+            z[q + s] = a - b;
+        }
+    }
+    else if (n >= 4) {
+        for (int p = 0; p < m; p++) {
+            const complex double wp = cos(p*theta0) -I*sin(p*theta0);
+            for (int q = 0; q < s; q++) {
+                const complex double  a = x[q + s*(p + 0)];
+                const complex double  b = x[q + s*(p + m)];
+                y[q + s*(2*p + 0)] =  a + b;
+                y[q + s*(2*p + 1)] = (a - b) * wp;
+            }
+        }
+        stockham (n/2, 2*s, !eo, y, x);
+    }
+}
+
+static void fft_stockham_base2 (complex double *X, int N)
+{
+    complex double Y[N];
+    stockham(N, 1, false, X, Y);
+}
+
+
+
 // Fonction d'affichage du resultat
 void print_complex_array(const char *v, complex double *X, int N) {
     for (int i = 0; i < N; i++) {
@@ -138,7 +183,7 @@ void print_complex_array(const char *v, complex double *X, int N) {
 int main(int argc, char *argv[]) {
     int const N2 = (argc > 1) ? atoi(argv[1]) : 1;
     int const N3 = (argc > 2) ? atoi(argv[2]) : 0;
-    int const N  = ipow(2,N2) * ipow(3,N3);
+    int const N  = ipow(2,N2) * ((N3 > 0) ? ipow(3,N3) : 1);
 
     printf("fprintf('N = %d\\n');\n", N);
     
@@ -151,12 +196,18 @@ int main(int argc, char *argv[]) {
     printf("%% Entree:\n");
     print_complex_array("X", x, N);
 
-    fft_hybrid(x, N, N2, N3);
+    clock_t tic = clock();
+    if (N3 < 0)
+      fft_stockham_base2(x, N);
+    else
+      fft_hybrid(x, N, N2, N3);
+    clock_t toc = clock() - tic;
 
-    printf("\n%% Sortie (FFT):\n");
+    printf("\n%% Sortie (FFT):  %.6fs clock\n", (double) toc/CLOCKS_PER_SEC);
     print_complex_array("Y", x, N);
 
     printf("\n");
+    if (N > 10000) printf("\nclocks = %.6f\n", (double) toc/CLOCKS_PER_SEC);
     printf("F = fft(X);\n");
     printf("e = max(abs(Y-F))\n");
     printf("if (e > 1e-6); fprintf('KO\\n');quit(1); else fprintf('OK\\n');quit(0); end\n");
