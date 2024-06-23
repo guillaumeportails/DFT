@@ -6,6 +6,7 @@
 #include <math.h>
 #include <complex.h>
 #include <time.h>
+#include <assert.h>
 
 #define PI 3.141592653589793238462
 
@@ -139,10 +140,28 @@ static void stockham (int n, int s, bool eo, complex double *x, complex double *
 // x  : input sequence(or output sequence if eo == 0)
 // y  : work area(or output sequence if eo == 1)
 {
-    const int m = n/2;
-    const double theta0 = 2*PI/n;
+    while (n >= 4)
+    {
+        const int m = n/2;
+        const double theta0 = 2*PI/n;
+        for (int p = 0; p < m; p++) {
+            const complex double wp = cos(p*theta0) -I*sin(p*theta0);
+            assert( (s == 1) || ((s%2) == 0) ); // Par q+=2 pour favoriser SIMD
+            for (int q = 0; q < s; q++) {
+                const complex double  a = x[q + s*(p + 0)]; // bi-sequentiel en read
+                const complex double  b = x[q + s*(p + m)];
+                y[q + s*(2*p + 0)] =  a + b;                // bi-sequentiel en write
+                y[q + s*(2*p + 1)] = (a - b) * wp;
+            }
+        }
+        n = m;
+        s = 2*s;
+        eo = !eo;
+        complex double *z = y; y = x; x = z;
+    }
 
-    if (n == 2) {
+    assert(n == 2);
+    {
         complex double * z = eo ? y : x;
         for (int q = 0; q < s; q++) {
             const complex double  a = x[q + 0];
@@ -150,18 +169,6 @@ static void stockham (int n, int s, bool eo, complex double *x, complex double *
             z[q + 0] = a + b;
             z[q + s] = a - b;
         }
-    }
-    else if (n >= 4) {
-        for (int p = 0; p < m; p++) {
-            const complex double wp = cos(p*theta0) -I*sin(p*theta0);
-            for (int q = 0; q < s; q++) {
-                const complex double  a = x[q + s*(p + 0)];
-                const complex double  b = x[q + s*(p + m)];
-                y[q + s*(2*p + 0)] =  a + b;
-                y[q + s*(2*p + 1)] = (a - b) * wp;
-            }
-        }
-        stockham (n/2, 2*s, !eo, y, x);
     }
 }
 
