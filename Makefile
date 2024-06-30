@@ -10,9 +10,10 @@ LDLIBS  = -lm
 all: test
 
 clean:
-	/bin/rm -f *.o dft fft check.m
+	/bin/rm -f *.o dft fft check.m tmp* a.out
 
-test: fft dft
+test: fft dft dft12.py
+	python3 dft12.py > tmp.m && octave --no-gui tmp.m
 	@echo
 	./fft  2    > check.m && octave --no-gui check.m
 	./fft 11    > check.m && octave --no-gui check.m
@@ -29,6 +30,7 @@ test: fft dft
 	./dft 15 -1 > check.m && octave --no-gui check.m
 	@echo
 	./dft  3  2 > check.m && octave --no-gui check.m
+
 
 
 fft: fft.o
