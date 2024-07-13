@@ -4,14 +4,27 @@
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>
+#include <assert.h>
 
 #define PI 3.141592653589793238462
 
+// Table des racines 2^N iemes de l'unite (jusqu'a FFT de 65536 points)
+static complex double w_p2[16];     // [0] indefini
+
+static void init_onetime()
+{
+    for (int s = 1; s < 16; s++) {
+        int const m = 1 << s;
+        w_p2[s] = cexp(-2.0 * I * PI / m);
+    }
+}
+
+
+
 static int ipow (int b, int n)         // pow(b,n)
 {
-  int r = 1;
-  while (n-- > 0) r *= b;
-  return r;
+    assert (b == 2);
+    return 1 << n;
 }
 
 // Permuter les elements selon l'ordre de bit inverse des index
@@ -28,18 +41,29 @@ static void base2_reverse_copy(const complex double *source, complex double *des
 
 // FFT pour N = 2^N2
 static void fft_base2(const complex double *X, complex double *Y, int N, int N2) {
+
+    // Shuffle X vers Y
     base2_reverse_copy(X, Y, N, N2);
 
+    // La suite est in-place dans Y
+    assert(N2 <= 16);
     for (int s = 1; s <= N2; s++) {
         int const m = 1 << s;
-        complex double wm = cexp(-2.0 * I * PI / m);
+        complex double wm = w_p2[s];        // = cexp(-2.0 * I * PI / 2^s);
         for (int k = 0; k < N; k += m) {
-            complex double w = 1.0;
-            for (int j = 0; j < m / 2; j++) {
-                complex double t = w * Y[k + j + 1 * m / 2];
-                complex double u =     Y[k + j + 0 * m / 2];
-                Y[k + j + 0 * m / 2] = u + t;
-                Y[k + j + 1 * m / 2] = u - t;
+            int const hm = m / 2;           // At least 1
+            complex double w = 1.0; {
+                complex double t = w * Y[k + 0 + 1 * hm];
+                complex double u =     Y[k + 0 + 0 * hm];
+                Y[k + 0 + 0 * hm] = u + t;
+                Y[k + 0 + 1 * hm] = u - t;
+                w *= wm;
+            }
+            for (int j = 1; j < hm; j++) {
+                complex double t = w * Y[k + j + 1 * hm];
+                complex double u =     Y[k + j + 0 * hm];
+                Y[k + j + 0 * hm] = u + t;
+                Y[k + j + 1 * hm] = u - t;
                 w *= wm;
             }
         }
@@ -57,26 +81,29 @@ void print_complex_array(const char *v, const complex double *X, int N) {
 }
 
 int main(int argc, char *argv[]) {
+
+    init_onetime();
+
     int const N2 = (argc > 1) ? atoi(argv[1]) : 1;
     int const N  = ipow(2,N2);
 
     printf("fprintf('N = %d = 2^%d\\n');\n", N, N2);
     
     // Exemple de signal de taille N
-    complex double x[N];
+    complex double X[N];
     for (int i = 0; i < N; i++) {
-        x[i] =    (1.0*sin(1+i*0.11) + 0.6*sin(1+i*0.21))
+        X[i] =    (1.0*sin(1+i*0.11) + 0.6*sin(1+i*0.21))
               + I*(1.0*sin(2-i*0.22) + 0.7*sin(2+i*0.22));
     }
 
     printf("%% Entree:\n");
-    print_complex_array("X", x, N);
+    print_complex_array("X", X, N);
 
-    complex double y[N];
-    fft_base2(x, y, N, N2);
+    complex double Y[N];
+    fft_base2(X, Y, N, N2);
 
     printf("\n%% Sortie (FFT):\n");
-    print_complex_array("Y", y, N);
+    print_complex_array("Y", Y, N);
 
     printf("\n");
     printf("F = fft(X);\n");

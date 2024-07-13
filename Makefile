@@ -12,8 +12,11 @@ clean:
 
 test: fft dft
 	@echo
+	./fft  0    > check.m && octave --no-gui check.m
+	./fft  1    > check.m && octave --no-gui check.m
 	./fft  2    > check.m && octave --no-gui check.m
 	./fft 11    > check.m && octave --no-gui check.m
+	./fft 12    > check.m && octave --no-gui check.m
 	@echo
 	./dft  2  0 > check.m && octave --no-gui check.m
 	./dft  8  0 > check.m && octave --no-gui check.m
