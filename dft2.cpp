@@ -66,10 +66,8 @@ static void base2_reverse_rgd (cplx_t *X, myuint N, myuint P2)
     }
 }
 
-static struct ototest
-{
-    ototest();
-} oto;
+// Faire un CHECK au boot du process
+static struct ototest { ototest(); } oto;
 ototest::ototest()
 {
     for (myuint i = 2; i <= 16; i++) base2_reverse_rgd (nullptr, 1<<i, i);
@@ -125,10 +123,10 @@ void fft_base2 (cplx_t *X, myuint N, myuint P2)
         {
             for (myuint j = 0; j < h; j++)
             {
-                cplx_t t0 = X[k + j + 0*h];
-                cplx_t t1 = X[k + j + 1*h] * wmj[j];
-                X[k + j + 0*h] = t0 + t1;       // t1*zexpiy(-2*PI/2 * 0*1);
-                X[k + j + 1*h] = t0 - t1;       // t1*zexpiy(-2*PI/2 * 1*1);
+                cplx_t t0 = X[j + k + 0*h];
+                cplx_t t1 = X[j + k + 1*h] * wmj[j];
+                X[j + k + 0*h] = t0 + t1;
+                X[j + k + 1*h] = t0 - t1;
                 C.zmul += 1; C.zadd += 2; C.mio += 5;
             }
         }
@@ -138,6 +136,12 @@ void fft_base2 (cplx_t *X, myuint N, myuint P2)
 
 // Stockham FFT
 // Cf http://wwwa.pikara.ne.jp/okojisan/otfft-en/stockham2.html
+//
+// Reputation de "moins amical" avec le cache sur Cooley-Tukey
+// + les R/W de t0 et T1 a chaque boucle interne soint lointaines l'une de l'autre
+//   ... mais c'est idem pour Cooley-Tukey ? Qui par contre ecrit la ou il a lu,
+//       au contraire de Stockham
+
 static void stockham (myuint n, myuint s, bool eo, cplx_t *x, cplx_t *y)
 // n  : sequence length
 // s  : stride
@@ -145,20 +149,21 @@ static void stockham (myuint n, myuint s, bool eo, cplx_t *x, cplx_t *y)
 // x  : input sequence(or output sequence if eo == 0)
 // y  : work area(or output sequence if eo == 1)
 {
+    myuint const N = n;     // save for assertion
     while (n >= 4)
     {
-        const myuint m = n/2;
-        const double theta0 = -2*PI/n;
+        myuint const m = n / 2;
+        double const theta0 = -2*PI/n;
         for (myuint p = 0; p < m; p++)
         {
-            const cplx_t wp = zexpiy(p*theta0);
+            cplx_t const wp = zexpiy(p*theta0); // Tabule
             assert( (s == 1) || ((s%2) == 0) ); // Par q+=2 pour favoriser SIMD
             for (myuint q = 0; q < s; q++)
             {
-                const cplx_t  a = x[q + s*(p + 0)]; // bi-sequentiel en read
-                const cplx_t  b = x[q + s*(p + m)];
-                y[q + s*(2*p + 0)] =  a + b;                // bi-sequentiel en write
-                y[q + s*(2*p + 1)] = (a - b) * wp;
+                cplx_t const t0 = x[q + s*(p + 0)];     // bi-sequentiel en read
+                cplx_t const t1 = x[q + s*(p + m)];
+                y[q + s*(2*p + 0)] =  t0 + t1;          // bi-sequentiel en write
+                y[q + s*(2*p + 1)] = (t0 - t1) * wp;
                 C.zmul += 1; C.zadd += 2; C.mio += 4;
             }
         }
@@ -168,15 +173,15 @@ static void stockham (myuint n, myuint s, bool eo, cplx_t *x, cplx_t *y)
         cplx_t *z = y; y = x; x = z;
     }
 
-    assert(n == 2);
+    assert((n == 2) && (s == N/2)); // Dernier arrangement, sur les deux demi-tableaux initiaux
     {
-        cplx_t * z = eo ? y : x;
+        cplx_t * const z = eo ? y : x;
         for (myuint q = 0; q < s; q++)
         {
-            const cplx_t  a = x[q + 0];
-            const cplx_t  b = x[q + s];
-            z[q + 0] = a + b;
-            z[q + s] = a - b;
+            const cplx_t t0 = x[q + 0];
+            const cplx_t t1 = x[q + s];
+            z[q + 0] = t0 + t1;
+            z[q + s] = t0 - t1;
             C.zmul += 0; C.zadd += 2; C.mio += 4;
         }
     }

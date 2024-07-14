@@ -17,7 +17,7 @@ all: test asm
 clean:
 	/bin/rm -f *.o dft fft check.m tmp* a.out *.asm *.log
 
-test: fft dft dft12.py
+test dft.log: fft dft dft12.py
 	python3 dft12.py > tmp.m && octave --no-gui tmp.m
 	rm -f fft.log dft.log
 	@echo
@@ -46,12 +46,10 @@ test: fft dft dft12.py
 	@echo; cat fft.log
 	@echo; sort -n -k3,13 dft.log
 
-#	@echo
-#	./dft  2 -1 > check.m && octave --no-gui check.m
-#	./dft  4 -1 > check.m && octave --no-gui check.m
-#	./dft 15 -1 > check.m && octave --no-gui check.m
-#	@echo
-#	./dft  3  2 > check.m && octave --no-gui check.m
+
+plot: dft.log cost.gp
+	gnuplot -c cost.gp
+
 
 asm: dft4.asm dft8.asm
 

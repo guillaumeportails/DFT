@@ -69,5 +69,6 @@ void fft_base4 (cplx_t *X, myuint N, myuint P4)
     }
 
     for (myuint i = 0; i < N; i++) X[i] = temp[i];
+    C.mio += 2*N;
 }
 
