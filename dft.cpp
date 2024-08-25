@@ -101,13 +101,14 @@ int main(int argc, char *argv[])
     int o;
     void (*opt_fft_base2)(cplx_t *x, myuint N, myuint P2) = fft_base2;
 //  bool opt_false = false;     //  const en fait, pour battre -O2
-    while ((o = getopt(argc,argv,"2:3:4:8:Sn")) > 0) switch (o)
+    while ((o = getopt(argc,argv,"2:3:4:8:SRn")) > 0) switch (o)
     {
         case '2' : P2 = atoi(optarg); break;
         case '3' : P3 = atoi(optarg); break;
         case '4' : P4 = atoi(optarg); break;
         case '8' : P8 = atoi(optarg); break;
         case 'S' : opt_fft_base2 = fft_stockham_base2; break;
+        case 'R' : opt_fft_base2 = fft_base2_r4; break;
 //      case 'n' : opt_false = true; break; // Option jamais donnee. Battre l'optimiseur.
     }
     assert((P2 > 0) || (P3 > 0) || (P4 > 0)|| (P8 > 0));

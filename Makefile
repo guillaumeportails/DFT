@@ -17,7 +17,8 @@ all: test asm
 clean:
 	/bin/rm -f *.o dft fft check.m tmp* a.out *.asm *.log
 
-test dft.log: fft dft dft12.py
+test dft.log: gpt_verbatim fft dft dft12.py
+	./gpt_verbatim
 	python3 dft12.py > tmp.m && octave --no-gui tmp.m
 	rm -f fft.log dft.log
 	@echo
@@ -30,6 +31,7 @@ test dft.log: fft dft dft12.py
 	set -e; for p in {1..16}; do \
 		./dft -2 $$p     > check.m && octave --no-gui check.m | tee -a dft.log; \
 		./dft -2 $$p -S  > check.m && octave --no-gui check.m | tee -a dft.log; \
+		./dft -2 $$p -R  > check.m && octave --no-gui check.m | tee -a dft.log; \
 		done
 	@echo
 	set -e; for p in {1..5}; do \
@@ -53,16 +55,18 @@ plot: dft.log cost.gp
 
 asm: dft4.asm dft8.asm
 
+gpt_verbatim: gpt_verbatim.cpp
 
 fft: fft.o
 fft.o: fft.c
 
-dft: dft.o dft2.o dft3.o dft4.o dft8.o
+dft: dft.o dft2.o dft2r4.o dft3.o dft4.o dft8.o
 dft.o: dft.cpp dft.h
 dft2.o: dft2.cpp dft.h
 dft3.o: dft3.cpp dft.h
 dft4.o: dft4.cpp dft.h
 dft8.o: dft8.cpp dft.h
+dft2r4.o: dft2r4.cpp dft.h
 
 
 # Code genere : gcc -S est moche. Il vaut mieux un objdump -S :

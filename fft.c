@@ -1,4 +1,4 @@
-// Cooley-Tukey : DFT de taille 2^N, out-of-place
+// Cooley-Tukey : DFT de taille 2^N, Cooley-Tukey - Radix2 - DIT, out-of-place
 
 #include <stdio.h>
 #include <stdlib.h>

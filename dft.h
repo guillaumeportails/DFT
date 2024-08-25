@@ -83,6 +83,7 @@ void baseR_reverse_copy (cplx_t *source, cplx_t *dest, myuint N, myuint P)
 
 // FFT de taille N = 2^P
 extern void fft_base2 (cplx_t *X, myuint N, myuint P2);
+extern void fft_base2_r4 (cplx_t *X, myuint N, myuint P2);
 extern void fft_stockham_base2 (cplx_t *X, myuint N, myuint P2);
 
 
