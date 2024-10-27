@@ -93,6 +93,7 @@ static double urand()
   double const r = rand();
   double const k = RAND_MAX *0.5;
   return r/k - 1.0;
+  
 }
 
 int main(int argc, char *argv[])

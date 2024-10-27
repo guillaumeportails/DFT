@@ -133,6 +133,58 @@ void fft_base2 (cplx_t *X, myuint N, myuint P2)
     }
 }
 
+// FFT-centered in-place pour N = 2^P2
+void fft_base2_centered (cplx_t *X, myuint N, myuint P2)
+{
+    C.name(__func__);
+    constexpr myuint R = 2;
+    base2_reverse_shuffle(X, N);
+ 
+    {
+        myuint const s = 1;
+        myuint const m = 1 << s;    // == 2
+        myuint const h = m / R;     // == 1
+//      cplx_t wm(-1,0);            // == exp(-2iPI / 2^s)
+//      cplx_t wmj[1](1,0);         // exp(-2iPI * j / 2^s)   j=0..2^(s-1)
+
+        for (myuint k = 0; k < N; k += m)
+        {
+            myuint const j = 0;     // loop j=[0,h[
+            {
+                cplx_t t0 =  X[j + k + 0*h];
+                cplx_t t1 = -X[j + k + 1*h];        // minus on odd-index entries
+                X[j + k + 0*h] = t0 + t1;
+                X[j + k + 1*h] = t0 - t1;
+                C.zmul += 1; C.zadd += 2; C.mio += 5;
+            }
+        }
+    }
+
+    for (myuint s = 2; s <= P2; s++)
+    {
+        myuint m = 1 << s;
+        myuint h = m / R;
+        cplx_t wm = zexpiy(-2.0 * PI / m);      // exp(-2iPI / 2^s)
+
+        cplx_t wmj[h];                          // exp(-2iPI * j / 2^s)   j=0..2^(s-1)  == 2^P values
+        wmj[0] = cplx_t(1.0f, 0.0f);
+        for (myuint j = 1; j < h; j++) wmj[j] = wmj[j-1] * wm;
+        C.zmul += h-1; C.mio += h;
+
+        for (myuint k = 0; k < N; k += m)
+        {
+            for (myuint j = 0; j < h; j++)
+            {
+                cplx_t t0 = X[j + k + 0*h];
+                cplx_t t1 = X[j + k + 1*h] * wmj[j];
+                X[j + k + 0*h] = t0 + t1;
+                X[j + k + 1*h] = t0 - t1;
+                C.zmul += 1; C.zadd += 2; C.mio += 5;
+            }
+        }
+    }
+}
+
 
 // Stockham FFT
 // Cf http://wwwa.pikara.ne.jp/okojisan/otfft-en/stockham2.html
